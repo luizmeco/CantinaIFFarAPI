@@ -1,0 +1,38 @@
+# Configurações de Ambiente
+# O arquivo .env contém credenciais sensíveis (banco de dados, chaves de API, etc.)
+# Apenas o env (ou .env.example) deve ser versionado.
+.env
+
+# Diretório Writable (Arquivos temporários, logs, cache, sessão e uploads)
+# Mantemos a pasta e o index.html por segurança, mas ignoramos o conteúdo gerado
+/writable/cache/*
+!/writable/cache/index.html
+/writable/logs/*
+!/writable/logs/index.html
+/writable/session/*
+!/writable/session/index.html
+/writable/uploads/*
+!/writable/uploads/index.html
+/writable/debugbar/*
+!/writable/debugbar/index.html
+
+# Dependências do Composer
+# Estas devem ser instaladas rodando `composer install` em cada ambiente
+/vendor/
+
+# Dependências de Frontend (se você estiver usando NPM/Yarn)
+/node_modules/
+
+# Arquivos de Sistema Operacional
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Arquivos de IDEs e Editores de Código
+.idea/
+.vscode/
+*.swp
