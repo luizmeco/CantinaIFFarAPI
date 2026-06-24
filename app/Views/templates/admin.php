@@ -135,7 +135,15 @@
             <aside class="col-md-3 col-lg-2 sidebar-desktop p-3 d-none d-md-block">
                 <h6 class="text-muted mb-3">Menu</h6>
 
-                <a href="<?= site_url('produtos') ?>" class="menu-link ativo">Produtos</a>
+                <a href="<?= site_url('produtos') ?>" class="menu-link <?= url_is('produtos*') || url_is('admin/produtos*') ? 'ativo' : '' ?>">Produtos</a>
+
+                <?php if(session()->get('usuario')['tipo'] === 'admin'): ?>
+                    <a href="<?= site_url('admin/usuarios') ?>" class="menu-link <?= url_is('admin/usuarios*') ? 'ativo' : '' ?>">Usuários</a>
+                    <a href="<?= site_url('admin/estoque') ?>" class="menu-link <?= url_is('admin/estoque*') ? 'ativo' : '' ?>">Estoque</a>
+                    <a href="<?= site_url('admin/vendas') ?>" class="menu-link <?= url_is('admin/vendas*') ? 'ativo' : '' ?>">Vendas</a>
+                <?php endif; ?>
+
+                <a href="<?= site_url('meus-dados') ?>" class="menu-link <?= url_is('meus-dados*') ? 'ativo' : '' ?>">Meus Dados</a>
 
                 <?php if(session()->get('logado')): ?>
                     <a href="<?= site_url('logout') ?>" class="menu-link">Sair</a>
@@ -158,7 +166,13 @@
         </div>
 
         <div class="offcanvas-body">
-                <a href="<?= site_url('produtos') ?>" class="menu-link ativo">Produtos</a>
+            <a href="<?= site_url('produtos') ?>" class="menu-link <?= url_is('produtos*') || url_is('admin/produtos*') ? 'ativo' : '' ?>">Produtos</a>
+            <?php if(session()->get('usuario')['tipo'] === 'admin'): ?>
+                <a href="<?= site_url('admin/usuarios') ?>" class="menu-link <?= url_is('admin/usuarios*') ? 'ativo' : '' ?>">Usuários</a>
+                <a href="<?= site_url('admin/estoque') ?>" class="menu-link <?= url_is('admin/estoque*') ? 'ativo' : '' ?>">Estoque</a>
+                <a href="<?= site_url('admin/vendas') ?>" class="menu-link <?= url_is('admin/vendas*') ? 'ativo' : '' ?>">Vendas</a>
+            <?php endif; ?>
+            <a href="<?= site_url('meus-dados') ?>" class="menu-link <?= url_is('meus-dados*') ? 'ativo' : '' ?>">Meus Dados</a>
             <?php if(session()->get('logado')): ?>
                 <a href="<?= site_url('logout') ?>" class="menu-link">Sair</a>
             <?php endif; ?>

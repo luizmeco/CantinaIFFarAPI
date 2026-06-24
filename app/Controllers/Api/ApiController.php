@@ -31,6 +31,8 @@ class ApiController extends BaseController
         $pedidosProdutosModel = new PedidosProdutosModel();
         $pedidosProdutos = $pedidosProdutosModel->select('pedidos_produtos.*, produtos.nome')
                                                 ->join('produtos', 'produtos.id = pedidos_produtos.id_produto', 'inner')
+                                                ->join('pedidos', 'pedidos.id = pedidos_produtos.id_pedido', 'inner')
+                                                ->where('pedidos.status', 'novo')
                                                 ->findAll();
 
         return $this->respond([
@@ -273,4 +275,105 @@ class ApiController extends BaseController
             'message' => 'Pedido finalizado e limpo do banco de dados com sucesso.'
         ]);
     }
+
+    public function concluirPedido()
+    {
+        $apiKey = $this->request->getHeaderLine('apiKey');
+
+        if (!$apiKey || $apiKey != env('API_KEY')) {
+            return $this->failUnauthorized('API Key inválida ou não informada.');
+        }
+
+        $dados = $this->request->getJSON(true);
+
+        if (!$dados || !isset($dados['id_pedido'])) {
+            return $this->failValidationErrors('Dados incompletos. Informe id_pedido.');
+        }
+
+        $pedidoModel = new PedidosModel();
+
+        $pedido = $pedidoModel->find($dados['id_pedido']);
+        if (!$pedido) {
+            return $this->failNotFound('Pedido não encontrado.');
+        }
+
+        $pedidoModel->update($dados['id_pedido'], [
+            'status' => 'efetuado'
+        ]);
+
+        return $this->respond([
+            'status'  => true,
+            'message' => 'Pedido concluído com sucesso.'
+        ]);
+    }
+
+    public function getPedidosEfetuados()
+    {
+        $apiKey = $this->request->getHeaderLine('apiKey');
+
+        if ($apiKey !== env('API_KEY')) {
+            return $this->respond(['error' => 'Unauthorized'], ResponseInterface::HTTP_UNAUTHORIZED);
+        }
+
+        $pedidoModel = new PedidosModel();
+        $pedidos = $pedidoModel->where('status', 'efetuado')->findAll();
+
+        if (empty($pedidos)) {
+            return $this->respond([], 200);
+        }
+
+        $pedidosProdutosModel = new PedidosProdutosModel();
+
+        // Obtém todos os produtos vinculados a esses pedidos, incluindo o nome do produto
+        $pedidoIds = array_column($pedidos, 'id');
+        $produtosPedidos = $pedidosProdutosModel->select('pedidos_produtos.*, produtos.nome as produto_nome')
+                                                ->join('produtos', 'produtos.id = pedidos_produtos.id_produto', 'inner')
+                                                ->whereIn('id_pedido', $pedidoIds)
+                                                ->findAll();
+
+        // Agrupa os produtos por ID de pedido
+        $produtosAgrupados = [];
+        foreach ($produtosPedidos as $item) {
+            $produtosAgrupados[$item['id_pedido']][] = $item;
+        }
+
+        // Associa os produtos a cada pedido
+        foreach ($pedidos as &$pedido) {
+            $pedido['produtos'] = $produtosAgrupados[$pedido['id']] ?? [];
+        }
+
+        return $this->respond($pedidos, 200);
+    }
+
+    public function marcarComoFeito()
+    {
+        $apiKey = $this->request->getHeaderLine('apiKey');
+
+        if (!$apiKey || $apiKey != env('API_KEY')) {
+            return $this->failUnauthorized('API Key inválida ou não informada.');
+        }
+
+        $dados = $this->request->getJSON(true);
+
+        if (!$dados || !isset($dados['id_pedido'])) {
+            return $this->failValidationErrors('Dados incompletos. Informe id_pedido.');
+        }
+
+        $pedidoModel = new PedidosModel();
+
+        $pedido = $pedidoModel->find($dados['id_pedido']);
+        if (!$pedido) {
+            return $this->failNotFound('Pedido não encontrado.');
+        }
+
+        $pedidoModel->update($dados['id_pedido'], [
+            'status' => 'feito'
+        ]);
+
+        return $this->respond([
+            'status'  => true,
+            'message' => 'Pedido marcado como feito com sucesso.'
+        ]);
+    }
 }
+

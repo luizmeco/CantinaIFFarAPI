@@ -41,9 +41,24 @@ $routes->group('admin', ['filter' => 'admin:admin'], function($routes) {
 
     $routes->get('produtos/novo', 'ProdutoController::novo');
 
-    $routes->post('produtos/salvar', 'ProdutoController::salvar');
+    // Usuários (Apenas Admin)
+    $routes->get('usuarios', 'UsuarioAdminController::index');
+    $routes->get('usuarios/novo', 'UsuarioAdminController::novo');
+    $routes->post('usuarios/salvar', 'UsuarioAdminController::salvar');
+    $routes->get('usuarios/editar/(:num)', 'UsuarioAdminController::editar/$1');
+    $routes->post('usuarios/atualizar/(:num)', 'UsuarioAdminController::atualizar/$1');
+    $routes->get('usuarios/bloquear/(:num)', 'UsuarioAdminController::bloquear/$1');
+    $routes->get('usuarios/desbloquear/(:num)', 'UsuarioAdminController::desbloquear/$1');
+
+    // Estoque e Vendas (Apenas Admin)
+    $routes->get('estoque', 'EstoqueController::metricas');
+    $routes->get('vendas', 'VendaController::index');
 
 });
+
+// perfil (qualquer usuário logado)
+$routes->get('meus-dados', 'UsuarioPerfilController::index');
+$routes->post('meus-dados/salvar', 'UsuarioPerfilController::salvar');
 
 // estoque
 $routes->get('estoque', 'EstoqueController::index');
@@ -63,6 +78,8 @@ $routes->group('api', function($routes) {
 
     $routes->get('produtos', 'Api\ApiController::get_produtos');
 
+    $routes->get('pedidosEfetuados', 'Api\ApiController::getPedidosEfetuados');
+
     $routes->post('checkout', 'Api\ApiController::checkout');
 
     $routes->post('adicionarAoCarrinho', 'Api\ApiController::adicionarAoCarrinho');
@@ -72,5 +89,9 @@ $routes->group('api', function($routes) {
     $routes->post('atualizarItemPedido', 'Api\ApiController::atualizarItemPedido');
 
     $routes->post('finalizarPedido', 'Api\ApiController::limparPedido');
+
+    $routes->post('concluirPedido', 'Api\ApiController::concluirPedido');
+
+    $routes->post('marcarComoFeito', 'Api\ApiController::marcarComoFeito');
 
 });
