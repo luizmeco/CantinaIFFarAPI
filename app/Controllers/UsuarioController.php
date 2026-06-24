@@ -52,6 +52,13 @@ class UsuarioController extends BaseController
         $registro = $this->model->where('email', $email)->first();
 
         if($registro && password_verify($senha, $registro['senha_hash'])){
+            if (isset($registro['bloqueado']) && $registro['bloqueado'] == 1) {
+                return redirect()
+                    ->to('/login')
+                    ->with('erros', 'Esta conta está bloqueada.')
+                    ->withInput();
+            }
+
             session()->set('logado', true); //var de controle
             
             session()->set('usuario', $registro);
