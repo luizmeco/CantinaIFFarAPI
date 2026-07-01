@@ -77,7 +77,8 @@ class ApiController extends BaseController
         
         //primeiro cadastramos o pedido para termos o ID
         $idPedido = $pedidoModel->insert([
-            'status' => $dados['status'] ?? 'novo'
+            'status' => $dados['status'] ?? 'novo',
+            'totem'  => $dados['totem'] ?? null
         ]);
 
 				//para o pedido enviado, verificamos todos os produtos enviados
@@ -140,7 +141,8 @@ class ApiController extends BaseController
         } else {
             // Cria um novo pedido caso não tenha sido enviado um id_pedido
             $idPedido = $pedidoModel->insert([
-                'status' => 'novo'
+                'status' => 'novo',
+                'totem'  => $dados['totem'] ?? null
             ]);
         }
 

@@ -10,7 +10,7 @@ class PedidosModel extends Model
     protected $primaryKey       = 'id';
     protected $returnType       = 'array';
     protected $protectFields    = true;
-    protected $allowedFields    = [ 'id', 'status', 'created_at', 'updated_at' ];
+    protected $allowedFields    = [ 'id', 'status', 'totem', 'created_at', 'updated_at' ];
 
     // Dates
     protected $useTimestamps = true;
