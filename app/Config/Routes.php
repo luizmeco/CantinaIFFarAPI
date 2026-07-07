@@ -52,6 +52,8 @@ $routes->group('admin', ['filter' => 'admin:admin'], function($routes) {
 
     // Estoque e Vendas (Apenas Admin)
     $routes->get('estoque', 'EstoqueController::metricas');
+    $routes->post('estoque/registrar', 'EstoqueController::registrar');
+    $routes->get('estoque/ajuste-rapido/(:num)/(:segment)', 'EstoqueController::ajusteRapido/$1/$2');
     $routes->get('vendas', 'VendaController::index');
 
 });

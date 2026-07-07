@@ -27,7 +27,17 @@ class ApiController extends BaseController
             return $this->respond(['error' => 'Unauthorized'], ResponseInterface::HTTP_UNAUTHORIZED);
         }
         $produtosModel = new ProdutoModel();
-        $produtos = $produtosModel->findAll();
+
+        // Subqueries para cálculo de estoque dinâmico
+        $sqlEstoqueEntrada = "(SELECT COALESCE(SUM(quantidade), 0) FROM estoques WHERE estoques.id_produto = produtos.id AND estoques.tipo = 'entrada')";
+        $sqlEstoqueSaida = "(SELECT COALESCE(SUM(quantidade), 0) FROM estoques WHERE estoques.id_produto = produtos.id AND estoques.tipo = 'saida')";
+        $sqlPedidos = "(SELECT COALESCE(SUM(pedidos_produtos.quantidade), 0) FROM pedidos_produtos INNER JOIN pedidos ON pedidos.id = pedidos_produtos.id_pedido WHERE pedidos_produtos.id_produto = produtos.id AND (pedidos.status = 'efetuado' OR pedidos.status = 'feito'))";
+
+        // Filtra para trazer somente produtos com estoque disponível maior que 0
+        $produtos = $produtosModel->select('produtos.*')
+                                  ->having("($sqlEstoqueEntrada - $sqlEstoqueSaida - $sqlPedidos) > 0")
+                                  ->findAll();
+
         $pedidosProdutosModel = new PedidosProdutosModel();
         $pedidosProdutos = $pedidosProdutosModel->select('pedidos_produtos.*, produtos.nome')
                                                 ->join('produtos', 'produtos.id = pedidos_produtos.id_produto', 'inner')
