@@ -99,7 +99,7 @@ class EstoqueController extends BaseController
         $observacao = $this->request->getPost('observacao');
 
         if (!$idProduto || !$quantidade || !$tipo) {
-            return redirect()->to('admin/estoque')->with('error', 'Por favor, preencha todos os campos obrigatórios.');
+            return redirect()->back()->with('error', 'Por favor, preencha todos os campos obrigatórios.');
         }
 
         $this->estoqueModel->insert([
@@ -110,7 +110,7 @@ class EstoqueController extends BaseController
             'observacao' => $observacao ?: null,
         ]);
 
-        return redirect()->to('admin/estoque')->with('success', 'Movimentação de estoque registrada com sucesso.');
+        return redirect()->back()->with('success', 'Movimentação de estoque registrada com sucesso.');
     }
 
     // Ajuste rápido de estoque (+1 / -1)
@@ -119,12 +119,12 @@ class EstoqueController extends BaseController
         $this->verificarLogin();
 
         if (!in_array($tipo, ['entrada', 'saida'])) {
-            return redirect()->to('admin/estoque')->with('error', 'Tipo de movimentação inválido.');
+            return redirect()->back()->with('error', 'Tipo de movimentação inválido.');
         }
 
         $produto = $this->produtoModel->find($idProduto);
         if (!$produto) {
-            return redirect()->to('admin/estoque')->with('error', 'Produto não encontrado.');
+            return redirect()->back()->with('error', 'Produto não encontrado.');
         }
 
         $this->estoqueModel->insert([
@@ -135,6 +135,100 @@ class EstoqueController extends BaseController
         ]);
 
         $mensagem = $tipo === 'entrada' ? 'Estoque aumentado com sucesso (+1).' : 'Estoque diminuído com sucesso (-1).';
-        return redirect()->to('admin/estoque')->with('success', $mensagem);
+        return redirect()->back()->with('success', $mensagem);
+    }
+
+    // Visualizar histórico de movimentações de estoque do produto
+    public function historico(int $idProduto)
+    {
+        $this->verificarLogin();
+
+        $produto = $this->produtoModel->find($idProduto);
+        if (!$produto) {
+            return redirect()->to('admin/estoque')->with('error', 'Produto não encontrado.');
+        }
+
+        $db = \Config\Database::connect();
+
+        // 1. Obter métricas rápidas do produto
+        $sqlEstoqueEntrada = "SELECT COALESCE(SUM(quantidade), 0) AS total FROM estoques WHERE id_produto = :id: AND tipo = 'entrada'";
+        $sqlEstoqueSaida = "SELECT COALESCE(SUM(quantidade), 0) AS total FROM estoques WHERE id_produto = :id: AND tipo = 'saida'";
+        $sqlPedidos = "SELECT COALESCE(SUM(pedidos_produtos.quantidade), 0) AS total FROM pedidos_produtos INNER JOIN pedidos ON pedidos.id = pedidos_produtos.id_pedido WHERE pedidos_produtos.id_produto = :id: AND (pedidos.status = 'efetuado' OR pedidos.status = 'feito') AND pedidos.deleted_at IS NULL AND pedidos_produtos.deleted_at IS NULL";
+
+        $totalEntradas = (int)$db->query($sqlEstoqueEntrada, ['id' => $idProduto])->getRow()->total;
+        $totalSaidas = (int)$db->query($sqlEstoqueSaida, ['id' => $idProduto])->getRow()->total;
+        $totalVendas = (int)$db->query($sqlPedidos, ['id' => $idProduto])->getRow()->total;
+        $quantidadeRestante = $totalEntradas - $totalSaidas - $totalVendas;
+
+        // 2. Filtros e paginação
+        $tipoFiltro = $this->request->getGet('tipo'); // '', 'entrada', 'saida_manual', 'venda'
+        $dataInicio = $this->request->getGet('data_inicio');
+        $dataFim = $this->request->getGet('data_fim');
+        $perPage = (int)($this->request->getGet('per_page') ?? 10);
+        $page = (int)($this->request->getGet('page') ?? 1);
+        $offset = ($page - 1) * $perPage;
+
+        // Construir query do histórico
+        $queryEstoque = "SELECT 'estoque' AS origem, tipo, quantidade, fornecedor, observacao, created_at FROM estoques WHERE id_produto = :id_produto:";
+        $queryVenda = "SELECT 'venda' AS origem, 'saida' AS tipo, pedidos_produtos.quantidade, NULL AS fornecedor, CONCAT('Venda - Pedido #', pedidos.id) AS observacao, pedidos.created_at FROM pedidos_produtos INNER JOIN pedidos ON pedidos.id = pedidos_produtos.id_pedido WHERE pedidos_produtos.id_produto = :id_produto: AND (pedidos.status = 'efetuado' OR pedidos.status = 'feito') AND pedidos.deleted_at IS NULL AND pedidos_produtos.deleted_at IS NULL";
+
+        $params = ['id_produto' => $idProduto];
+        
+        if (!empty($dataInicio)) {
+            $queryEstoque .= " AND created_at >= :data_inicio_est:";
+            $queryVenda .= " AND pedidos.created_at >= :data_inicio_ven:";
+            $params['data_inicio_est'] = $dataInicio . ' 00:00:00';
+            $params['data_inicio_ven'] = $dataInicio . ' 00:00:00';
+        }
+        if (!empty($dataFim)) {
+            $queryEstoque .= " AND created_at <= :data_fim_est:";
+            $queryVenda .= " AND pedidos.created_at <= :data_fim_ven:";
+            $params['data_fim_est'] = $dataFim . ' 23:59:59';
+            $params['data_fim_ven'] = $dataFim . ' 23:59:59';
+        }
+
+        $queries = [];
+        if (empty($tipoFiltro) || $tipoFiltro === 'entrada' || $tipoFiltro === 'saida_manual') {
+            $subQueryEstoque = $queryEstoque;
+            if ($tipoFiltro === 'entrada') {
+                $subQueryEstoque .= " AND tipo = 'entrada'";
+            } elseif ($tipoFiltro === 'saida_manual') {
+                $subQueryEstoque .= " AND tipo = 'saida'";
+            }
+            $queries[] = $subQueryEstoque;
+        }
+
+        if (empty($tipoFiltro) || $tipoFiltro === 'venda') {
+            $queries[] = $queryVenda;
+        }
+
+        $unionQuery = implode(" UNION ALL ", $queries);
+        
+        // Executar contagem
+        $countQuery = "SELECT COUNT(*) AS total FROM ($unionQuery) AS temp";
+        $totalResult = $db->query($countQuery, $params)->getRowArray();
+        $total = (int)($totalResult['total'] ?? 0);
+
+        // Executar busca com limites
+        $dataQuery = "$unionQuery ORDER BY created_at DESC LIMIT $perPage OFFSET $offset";
+        $historico = $db->query($dataQuery, $params)->getResultArray();
+
+        $pager = \Config\Services::pager();
+
+        return view('pages/admin/estoque/historico', [
+            'produto'             => $produto,
+            'historico'           => $historico,
+            'totalEntradas'       => $totalEntradas,
+            'totalSaidas'         => $totalSaidas,
+            'totalVendas'         => $totalVendas,
+            'quantidadeRestante'  => $quantidadeRestante,
+            'tipo'                => $tipoFiltro,
+            'dataInicio'          => $dataInicio,
+            'dataFim'             => $dataFim,
+            'perPage'             => $perPage,
+            'page'                => $page,
+            'total'               => $total,
+            'pager'               => $pager
+        ]);
     }
 }

@@ -66,8 +66,3 @@
 </script>
 
 <?php $this->endSection() ?>
-        preview.classList.remove('d-none');
-    }
-</script>
-
-<?= $this->endSection() ?>
