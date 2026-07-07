@@ -73,14 +73,68 @@ class EstoqueController extends BaseController
             $prod['disponivel'] = $prod['quantidade_restante'] > 0;
         }
 
+        $todosProdutos = $this->produtoModel->select('id, nome')->orderBy('nome', 'ASC')->findAll();
+
         return view('pages/admin/estoque/metricas', [
-            'produtos'   => $produtos,
-            'pager'      => $this->produtoModel->pager,
-            'categoria'  => $categoria,
-            'busca'      => $busca,
-            'dataInicio' => $dataInicio,
-            'dataFim'    => $dataFim,
-            'perPage'    => $perPage
+            'produtos'      => $produtos,
+            'pager'         => $this->produtoModel->pager,
+            'categoria'     => $categoria,
+            'busca'         => $busca,
+            'dataInicio'    => $dataInicio,
+            'dataFim'       => $dataFim,
+            'perPage'       => $perPage,
+            'todosProdutos' => $todosProdutos
         ]);
+    }
+
+    // Registrar movimentação de estoque de um produto cadastrado no banco
+    public function registrar()
+    {
+        $this->verificarLogin();
+
+        $idProduto = $this->request->getPost('id_produto');
+        $quantidade = $this->request->getPost('quantidade');
+        $tipo = $this->request->getPost('tipo');
+        $fornecedor = $this->request->getPost('fornecedor');
+        $observacao = $this->request->getPost('observacao');
+
+        if (!$idProduto || !$quantidade || !$tipo) {
+            return redirect()->to('admin/estoque')->with('error', 'Por favor, preencha todos os campos obrigatórios.');
+        }
+
+        $this->estoqueModel->insert([
+            'id_produto' => $idProduto,
+            'quantidade' => (int)$quantidade,
+            'tipo'       => $tipo,
+            'fornecedor' => $fornecedor ?: null,
+            'observacao' => $observacao ?: null,
+        ]);
+
+        return redirect()->to('admin/estoque')->with('success', 'Movimentação de estoque registrada com sucesso.');
+    }
+
+    // Ajuste rápido de estoque (+1 / -1)
+    public function ajusteRapido($idProduto, $tipo)
+    {
+        $this->verificarLogin();
+
+        if (!in_array($tipo, ['entrada', 'saida'])) {
+            return redirect()->to('admin/estoque')->with('error', 'Tipo de movimentação inválido.');
+        }
+
+        $produto = $this->produtoModel->find($idProduto);
+        if (!$produto) {
+            return redirect()->to('admin/estoque')->with('error', 'Produto não encontrado.');
+        }
+
+        $this->estoqueModel->insert([
+            'id_produto' => $idProduto,
+            'quantidade' => 1,
+            'tipo'       => $tipo,
+            'observacao' => 'Ajuste rápido (' . ($tipo === 'entrada' ? '+1' : '-1') . ')',
+        ]);
+
+        $mensagem = $tipo === 'entrada' ? 'Estoque aumentado com sucesso (+1).' : 'Estoque diminuído com sucesso (-1).';
+        return redirect()->to('admin/estoque')->with('success', $mensagem);
     }
 }

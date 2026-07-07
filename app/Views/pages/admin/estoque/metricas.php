@@ -4,7 +4,26 @@
 
 <?php $this->section('conteudo') ?>
 
-<h1 class="mb-4">Métricas de Estoque</h1>
+<?php if (session()->getFlashdata('success')): ?>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <?= session()->getFlashdata('success') ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
+
+<?php if (session()->getFlashdata('error')): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <?= session()->getFlashdata('error') ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Métricas de Estoque</h1>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalLancarEstoque">
+        ➕ Lançar Estoque
+    </button>
+</div>
 
 <!-- Filtros superiores -->
 <form id="filtroForm" method="get" action="<?= site_url('admin/estoque') ?>" class="bg-light p-3 rounded mb-4 border">
@@ -77,6 +96,7 @@
                     <th class="text-center">Disponível</th>
                     <th class="text-end">Stock atual</th>
                     <th class="text-end">Quantidade</th>
+                    <th class="text-center">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -108,6 +128,16 @@
                         </td>
                         <td class="text-end fw-semibold text-muted"><?= esc($produto['stock_atual']) ?></td>
                         <td class="text-end fw-bold text-success-emphasis"><?= esc($produto['quantidade_restante']) ?></td>
+                        <td class="text-center">
+                            <div class="d-inline-flex gap-2">
+                                <a href="<?= site_url('admin/estoque/ajuste-rapido/' . $produto['id'] . '/entrada') ?>" class="btn btn-sm btn-success px-2 py-1 fw-bold" title="Aumentar estoque em 1 unidade">
+                                    +1
+                                </a>
+                                <a href="<?= site_url('admin/estoque/ajuste-rapido/' . $produto['id'] . '/saida') ?>" class="btn btn-sm btn-danger px-2 py-1 fw-bold" title="Diminuir estoque em 1 unidade">
+                                    -1
+                                </a>
+                            </div>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -127,6 +157,63 @@
         Nenhum produto correspondente aos filtros foi encontrado.
     </div>
 <?php endif; ?>
+
+<!-- Modal Lançar Estoque -->
+<div class="modal fade" id="modalLancarEstoque" tabindex="-1" aria-labelledby="modalLancarEstoqueLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 15px; border: none; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h5 class="modal-title fw-bold" id="modalLancarEstoqueLabel">📦 Lançar Movimentação de Estoque</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="<?= site_url('admin/estoque/registrar') ?>" method="post">
+                <div class="modal-body p-4">
+                    <!-- Produto -->
+                    <div class="mb-3">
+                        <label for="id_produto" class="form-label fw-semibold text-muted">Produto <span class="text-danger">*</span></label>
+                        <select name="id_produto" id="id_produto" class="form-select" style="border-radius: 10px;" required>
+                            <option value="">Selecione um produto...</option>
+                            <?php foreach ($todosProdutos as $p): ?>
+                                <option value="<?= $p['id'] ?>"><?= esc($p['nome']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <!-- Tipo de Movimentação -->
+                    <div class="mb-3">
+                        <label for="tipo_mov" class="form-label fw-semibold text-muted">Tipo de Movimentação <span class="text-danger">*</span></label>
+                        <select name="tipo" id="tipo_mov" class="form-select" style="border-radius: 10px;" required>
+                            <option value="entrada">Entrada (Aumentar estoque)</option>
+                            <option value="saida">Saída (Diminuir estoque)</option>
+                        </select>
+                    </div>
+
+                    <!-- Quantidade -->
+                    <div class="mb-3">
+                        <label for="qtd" class="form-label fw-semibold text-muted">Quantidade <span class="text-danger">*</span></label>
+                        <input type="number" name="quantidade" id="qtd" class="form-control" min="1" placeholder="Digite a quantidade..." style="border-radius: 10px;" required>
+                    </div>
+
+                    <!-- Fornecedor -->
+                    <div class="mb-3">
+                        <label for="forn" class="form-label fw-semibold text-muted">Fornecedor (Opcional)</label>
+                        <input type="text" name="fornecedor" id="forn" class="form-control" placeholder="Nome do fornecedor" style="border-radius: 10px;">
+                    </div>
+
+                    <!-- Observação -->
+                    <div class="mb-3">
+                        <label for="obs" class="form-label fw-semibold text-muted">Observação (Opcional)</label>
+                        <textarea name="observacao" id="obs" class="form-control" rows="2" placeholder="Ex: Carga inicial, ajuste de estoque, etc." style="border-radius: 10px;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top-0">
+                    <button type="button" class="btn btn-secondary px-4" style="border-radius: 10px;" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4" style="border-radius: 10px;">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <?php $this->endSection() ?>
 
