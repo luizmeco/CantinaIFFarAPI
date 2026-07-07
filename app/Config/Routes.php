@@ -41,6 +41,8 @@ $routes->group('admin', ['filter' => 'admin:admin'], function($routes) {
 
     $routes->get('produtos/novo', 'ProdutoController::novo');
 
+    $routes->post('produtos/salvar', 'ProdutoController::salvar');
+
     // Usuários (Apenas Admin)
     $routes->get('usuarios', 'UsuarioAdminController::index');
     $routes->get('usuarios/novo', 'UsuarioAdminController::novo');
@@ -54,6 +56,7 @@ $routes->group('admin', ['filter' => 'admin:admin'], function($routes) {
     $routes->get('estoque', 'EstoqueController::metricas');
     $routes->post('estoque/registrar', 'EstoqueController::registrar');
     $routes->get('estoque/ajuste-rapido/(:num)/(:segment)', 'EstoqueController::ajusteRapido/$1/$2');
+    $routes->get('estoque/historico/(:num)', 'EstoqueController::historico/$1');
     $routes->get('vendas', 'VendaController::index');
 
 });

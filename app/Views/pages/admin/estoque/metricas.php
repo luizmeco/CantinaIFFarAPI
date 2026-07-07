@@ -136,6 +136,9 @@
                                 <a href="<?= site_url('admin/estoque/ajuste-rapido/' . $produto['id'] . '/saida') ?>" class="btn btn-sm btn-danger px-2 py-1 fw-bold" title="Diminuir estoque em 1 unidade">
                                     -1
                                 </a>
+                                <a href="<?= site_url('admin/estoque/historico/' . $produto['id']) ?>" class="btn btn-sm btn-info text-white px-2 py-1 fw-semibold" title="Visualizar histórico de estoque">
+                                    📋 Histórico
+                                </a>
                             </div>
                         </td>
                     </tr>

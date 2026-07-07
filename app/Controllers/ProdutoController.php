@@ -97,8 +97,11 @@ class ProdutoController extends BaseController
             $erros = array_merge($erros, $this->model->errors());
         }
 
-        if (! $this->validate($regrasFoto)) {
-            $erros = array_merge($erros, $this->validator->getErrors());
+        $foto = $this->request->getFile('foto');
+        if ($foto && $foto->getError() != 4) {
+            if (! $this->validate($regrasFoto)) {
+                $erros = array_merge($erros, $this->validator->getErrors());
+            }
         }
 
         if (! empty($erros)) {
@@ -107,8 +110,6 @@ class ProdutoController extends BaseController
                 ->with('errors', $erros);
         }
 
-
-        $foto = $this->request->getFile('foto');
 
         if ($foto && $foto->isValid()) {
 
